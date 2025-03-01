@@ -1,0 +1,120 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage[]{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\PassOptionsToPackage{hyphens}{url} % url is loaded by hyperref
+\usepackage[unicode=true]{hyperref}
+\hypersetup{
+            pdftitle={Specyfikacja funkcjonalna symulatora układu N-ciał: nsim},
+            pdfauthor={Tsimafei Lukashevich, Paweł Solecki},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+% set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+
+
+\title{Podzielenie grafu na części}
+\author{Tsimafei Lukashevich, Paweł Solecki}
+\date{01.03.2025}
+
+\begin{document}
+\maketitle
+
+\section{Cel projektu}\label{header-n231}
+
+Celem projektu jest stworzenie aplikacji dokonującej podziału grafu na określoną liczbę części przy minimalnej liczbie przeciętych krawędzi i zachowaniu równowagi w liczbie wierzchołków. Program działa w trybie wsadowym, umożliwiając konfigurację parametrów podziału. Dane wejściowe są przekazywane w formacie tekstowym, a wynik zapisywany w pliku tekstowym lub binarnym, co pozwala na ich ponowne wykorzystanie.
+
+\section{Dane wejściowe}\label{header-n233}
+
+Do poprawnego uruchomiena programu mamy zdefinować graf za pomocą pliku tekstowego, czyli mamy podać ścieżkę do pliku z grafem, będącym argumentem wymaganym.
+
+Program jest uruchomiany w terminalu, gdzie wszystkie parametry powinny być przekazywane przez linię poleceń.
+
+\section{Argumenty wywołania programu}\label{header-n256}
+
+Program akceptuje następujące argumenty wywołania:
+
+\begin{itemize}
+\item
+    \texttt{-p / -\/-parts} – liczba części podziału (np. -p 3, -\/-parts 3), domyślnie 2.
+\item
+    \texttt{-m / -\/-margin} – maksymalny margines procentowy (np. -m 15, -\/-margin 15), domyślnie 10\%.
+\item
+    \texttt{-o / -\/-output} – format wyjściowy (-o txt lub -\/-output txt dla pliku tekstowego, -o bin lub -\/-output bin dla pliku binarnego), domyślnie tekstowy.
+\end{itemize}
+
+Przykładowe wywołania programu:
+
+\begin{itemize}
+\item
+  \texttt{./program\ graf.txt -\/-parts\ 3\ -\/-margin\ 20\ -\/-output\ txt}
+  , efektem będzie podzielenie grafu odczytanego z pliku \texttt{graf.txt} na \texttt{3} części tak, że liczba wierzchołków w powstałych częściach grafu nie będzie się różnić o więcej niż \texttt{20} procentowy oraz liczba przeciętych krawędzi będzie jak najmniejsza. Wynik będzie zapisany do pliku formatu \texttt{txt}.
+\end{itemize}
+
+\section{Teoria}\label{header-n279}
+
+{[}tutaj opisałbym jak to jest liczone -\/- patrz tablica{]}
+
+\section{Komunikaty błędów}\label{header-n281}
+
+Program nie przyjmuje agrumentow w trakcie działania więc mamy jedynie zadbać o poprawność danych wejściowych.
+
+\begin{itemize}
+\item
+    Błędne definacja grafu: \texttt{Linia 29: Niepoprawna definicja krawędzi. Wczytano: "1".}
+\item
+    Błędna liczba podziałów: \texttt{Liczba podziałów musi być większa od 0 i mniejsza od liczby wierzchołków. Wczytano: "-1".}
+\item
+    Błędny margines procentowy: \texttt{Margines procentowy musi być w zakresie 0-100. Wczytano: "123".}
+\item
+    Nieznany format wyjścia: \texttt{Program obsługuje formaty txt i bin. Wczytano: "pdf".}
+\item
+  Masa ciała w danych wejściowych mniejsza/równa 0:
+  \texttt{Linia\ 31:\ Masa\ ciała\ musi\ być\ większa\ od\ 0\ kg.\ Wczytano:\ "-2.1".\ Ciało\ zostało\ pominięte.}
+  Program wykrył ujemną masę (o wartości \emph{-2.1}) w linii 31 danych
+  wejściowych. Program ignoruje nieprawidłowe ciało.
+\end{itemize}
+
+\end{document}
