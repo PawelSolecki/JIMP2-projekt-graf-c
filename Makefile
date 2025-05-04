@@ -10,10 +10,10 @@ BUILD_DIR = build
 EXECUTABLE = graph_reader
 
 # Pliki źródłowe
-SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/graph.c $(SRC_DIR)/csrrg_reader.c $(SRC_DIR)/csrrg_writer.c
+SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/graph.c $(SRC_DIR)/csrrg_reader.c $(SRC_DIR)/csrrg_writer.c $(SRC_DIR)/bin_writer.c
 
 # Pliki obiektowe
-OBJECTS = $(BUILD_DIR)/main.o $(BUILD_DIR)/graph.o $(BUILD_DIR)/csrrg_reader.o $(BUILD_DIR)/csrrg_writer.o
+OBJECTS = $(BUILD_DIR)/main.o $(BUILD_DIR)/graph.o $(BUILD_DIR)/csrrg_reader.o $(BUILD_DIR)/csrrg_writer.o $(BUILD_DIR)/bin_writer.o
 
 # Główny cel - kompilacja programu
 all: $(BUILD_DIR) $(EXECUTABLE)
@@ -39,9 +39,12 @@ $(BUILD_DIR)/csrrg_reader.o: $(SRC_DIR)/csrrg_reader.c $(SRC_DIR)/file_reader.h
 $(BUILD_DIR)/csrrg_writer.o: $(SRC_DIR)/csrrg_writer.c $(SRC_DIR)/file_writer.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)/csrrg_writer.c -o $(BUILD_DIR)/csrrg_writer.o
 
+$(BUILD_DIR)/bin_writer.o: $(SRC_DIR)/bin_writer.c $(SRC_DIR)/file_writer.h
+	$(CC) $(CFLAGS) -c $(SRC_DIR)/bin_writer.c -o $(BUILD_DIR)/bin_writer.o
+
 # Uruchamianie programu (sztywne ścieżki)
 run: all
-	./$(EXECUTABLE) data/graf1.csrrg data/output.csrrg
+	./$(EXECUTABLE) data/graf1.csrrg data/output.bin
 
 # Czyszczenie projektu
 clean:

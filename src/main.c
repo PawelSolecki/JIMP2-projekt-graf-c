@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     printGraph(graph);
 
     // Zapisz graf do pliku wyjściowego
-    if (save_graph(graph, argv[2]) != 0) {
+    if (save_graph_bin(graph, argv[2]) != 0) {
         fprintf(stderr, "Nie udało się zapisać grafu do pliku %s.\n", argv[2]);
         freeGraph(graph);
         return EXIT_FAILURE;
