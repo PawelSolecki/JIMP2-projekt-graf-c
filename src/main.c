@@ -1,40 +1,30 @@
+#include "file_writer.h"
+#include "file_reader.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "graph.h"       // Definicje struktur Graph, Node i funkcji createGraph, addEdge, printGraph, freeGraph, getVertexPosition, getVertexIndex
-#include "file_reader.h" // Deklaracja funkcji load_graph_from_file
 
 int main(int argc, char *argv[]) {
-    // Sprawdzenie, czy podano dokładnie jeden argument (nazwę pliku)
-    if (argc != 2) {
-        fprintf(stderr, "Użycie: %s <ścieżka_do_pliku.csrrg>\n", argv[0]);
-        return EXIT_FAILURE; // Zwróć kod błędu
+    if (argc != 3) {
+        fprintf(stderr, "Użycie: %s <plik_wejściowy.csrrg> <plik_wyjściowy.csrrg>\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
-    const char* filename = argv[1]; // Pobierz nazwę pliku z argumentów
-    Graph *graph = NULL;
-
-    printf("Wczytywanie grafu z pliku: %s\n", filename);
-
-    // Wczytaj graf z pliku za pomocą funkcji z csrrg_reader.c
-    graph = load_graph_from_file(filename);
-
-    // Sprawdź, czy wczytywanie się powiodło
-    if (graph == NULL) {
-        fprintf(stderr, "Nie udało się wczytać grafu z pliku %s.\n", filename);
-        // Funkcja load_graph_from_file powinna już wypisać szczegółowy błąd
-        return EXIT_FAILURE; // Zwróć kod błędu
+    // Wczytaj graf z pliku wejściowego
+    Graph *graph = load_graph_from_file(argv[1]);
+    if (!graph) {
+        fprintf(stderr, "Nie udało się wczytać grafu z pliku %s.\n", argv[1]);
+        return EXIT_FAILURE;
     }
-
-    printf("\nGraf wczytany pomyślnie.\n");
-
-    // Wypisz wczytany graf na konsolę
     printGraph(graph);
 
+    // Zapisz graf do pliku wyjściowego
+    if (save_graph(graph, argv[2]) != 0) {
+        fprintf(stderr, "Nie udało się zapisać grafu do pliku %s.\n", argv[2]);
+        freeGraph(graph);
+        return EXIT_FAILURE;
+    }
 
-    // Zwolnij pamięć zajmowaną przez graf
-    printf("\nZwalnianie pamięci grafu...\n");
+    printf("Graf został pomyślnie zapisany do pliku %s.\n", argv[2]);
     freeGraph(graph);
-    printf("Pamięć zwolniona.\n");
-
-    return EXIT_SUCCESS; // Zwróć kod sukcesu
+    return EXIT_SUCCESS;
 }
