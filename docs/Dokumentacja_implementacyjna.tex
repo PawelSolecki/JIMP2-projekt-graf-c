@@ -1,0 +1,409 @@
+
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{geometry}
+\newgeometry{tmargin=3cm, bmargin=3cm, lmargin=3.5cm, rmargin=3.5cm}
+\lstset{
+    backgroundcolor=\color{gray!10},
+    % basicstyle=\ttfamily\small,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    captionpos=b
+}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage[]{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\PassOptionsToPackage{hyphens}{url} % url is loaded by hyperref
+\usepackage[unicode=true]{hyperref}
+\hypersetup{
+            pdftitle={Specyfikacja funkcjonalna symulatora układu N-ciał: nsim},
+            pdfauthor={Tsimafei Lukashevich, Paweł Solecki},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+% set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+
+
+\title{Podzielenie grafu na części
+ 
+Dokumentacja imlpementacyjna}
+\author{Tsimafei Lukashevich, Paweł Solecki}
+\date{27.03.2025}
+
+\begin{document}
+\maketitle
+
+
+\section{1. Algorytm dzielenia grafu na k części - METIS}
+\subsection{1.1. Krótki opis algorytmu}
+Celem algorytmu METIS jest podział nieskierowanego grafu $G = (V, E)$ na $k$ części, minimalizując liczbę przeciętych krawędzi. Algorytm składa się z trzech głównych etapów: 
+
+    \subsubsection{1.1.1. Coarsening (scalanie wierzchołków)} Hierarchiczne redukowanie grafu przez łączenie wierzchołków o silnych połączeniach. Siłę połączeń określamy następująco:
+    \begin{itemize}
+        \item Wierzchołki są bezpośrednio połączone.
+        \item Mają wielu wspólnych sąsiadów (np. wierzchołki w tej samej gęstej części grafu).
+    \end{itemize}
+    \subsubsection{1.1.2. Initial Partitioning (wstępny podział)}
+    Podział najmniejszej wersji grafu na $k$ części za pomocą wybranej metody.
+    \subsubsection{1.1.3. Refinement (ulepszanie podziału)}
+    Optymalizacja podziału, aby zminimalizować liczbę przeciętych krawędzi.
+
+\subsection{1.2. Opis szczegółów działania poszczególnych etapów}
+
+
+\subsubsection{1.2.1. Coarsening (scalanie wierzchołków):}
+\begin{enumerate}
+    \item Utwórz kopię grafu $G_c \gets G$.
+    \item Dopóki graf $G_c$ jest zbyt duży:
+    \begin{itemize}
+        \item Wybierz niesparowany wierzchołek $v \in V$.
+        \item Znajdź sąsiada $u$ maksymalizującego wagę krawędzi $w(v, u)$.
+        \item Połącz $v$ i $u$ w jeden superwierzchołek.
+        \item Zaktualizuj listę sąsiedztwa.
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{1.2.2. Initial Partitioning (wstępny podział):}
+    Podziel zredukowany graf $G_c$ na $k$ części za pomocą wybranej metody.
+\begin{itemize}
+    \item Podziel zredukowany graf $G_c$ na $k$ części.
+    \item Wykorzystaj jedną z metod - losową, algorytm spektralny lub heurystykę optymalizacyjną.
+    \item Każdemu wierzchołkowi w $G_c$ przypisz jedną z $k$ części, minimalizując sumę wag przeciętych krawędzi.
+\end{itemize}
+
+\subsubsection{1.2.3. Refinement (ulepszanie podziału):}
+    Dla każdego wierzchołka $v \in V$ w pełnym grafie $G$:
+    \begin{itemize}
+        \item Sprawdź, czy przeniesienie $v$ do innej części zmniejsza liczbę przeciętych krawędzi.
+        \item Jeśli przeniesienie poprawia wynik, przenieś $v$ do nowej części.
+    \end{itemize}
+
+\textbf{Wynik:} Przypisanie wierzchołków do $k$ części.
+
+\section{2. Formaty plików}
+\subsection{2.1. Format wejściowy}
+
+
+\subsubsection{2.1.1. Plik \texttt{.csrrg}}
+
+Tekstowy plik wejściowy z rozszerzeniem \texttt{.csrrg} opisujący graf w formacie macierzowym, gdzie:
+\begin{itemize}
+    \item 
+    \textbf{1 linia} - Rozmiar macierzy (maksymalna liczba węzłów w wierszu)
+    \item 
+    \textbf{2 linia} - Indeksy węzłów w poszczególnych wierszach
+    \item 
+    \textbf{3 linia} - Wskaźniki na pierwszy węzeł w wierszu (odnosi sie do 2 linii)
+    \item 
+    \textbf{4 linia} - Grupy połączonych węzłów - pierwszy węzeł z grupy jest połączony z resztą grupy
+    \item 
+    \textbf{5 linia} - Wskaźniki na pierwszy węzeł grupy (odnosi się do 4 linii)
+\end{itemize}
+\textbf{Przykład pliku \texttt{.csrrg}}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{graf.png}
+    \caption{Graf opisany w pliku graf.csrrg}
+    \label{fig:enter-label}
+\end{figure}
+
+Plik \texttt{graf.csrrg}:
+
+\begin{lstlisting}
+7
+1;3;1;5;3;2;6;0;3;6
+0;2;2;4;5;5;7;10
+0;1;2;6;1;4;3;2;3;5;3;6;4;5;9;5;7;8;6;9;7;8
+0;4;7;10;12;15;18;20
+\end{lstlisting}
+\textbf{Wytłumaczenie rozmieszecznia węzłów w rzędach} - opis linii 2 i 3
+
+
+\textit{Pierwszy rząd}\\
+...\\
+\texttt{1;3;}\textcolor{gray}{\texttt{1;5;3;}...} - indeksy węzłów\\
+\texttt{0;2;}\textcolor{gray}{\texttt{2;4;5;5;}...} - zakres pierwszego rzędu\\
+...
+
+\textit{Drugi rząd}\\
+...\\
+\textcolor{gray}{\texttt{1;3;1;5;3;}...} - indeksy węzłów\\
+\textcolor{gray}{\texttt{0;}}\texttt{2;2;}\textcolor{gray}{\texttt{4;5;5;}...} - zakres drugiego rzędu\\
+...
+
+\textit{Trzeci rząd}\\
+...\\
+\textcolor{gray}{\texttt{1;3;}}\texttt{1;5;}\textcolor{gray}{\texttt{3;2;6;}...} - indeksy węzłów\\
+\textcolor{gray}{\texttt{0;2;}}\texttt{2;4;}\textcolor{gray}{\texttt{5;5;}...} - zakres trzeciego rzędu\\
+...
+
+\textbf{Wytłumaczenie grup połączonych węzłów} - opis linii 4 i 5
+
+\textit{Pierwsza grupa}\\
+...\\
+\texttt{0;1;2;6;}\textcolor{gray}{1;4;3;2;3...} - 0 jest połączone z 1, 2, 6\\
+\texttt{0;4;}\textcolor{gray}{7;10;12;...} - zakres grupy\\
+...
+
+\textit{Druga grupa}\\
+...\\
+\textcolor{gray}{0;1;2;6;}\texttt{1;4;3;}\textcolor{gray}{2;3...} - 1 jest połączone z 4, 3\\
+\textcolor{gray}{0;}\texttt{4;7;}\textcolor{gray}{10;12;...} - zakres grupy\\
+...
+
+\subsubsection{2.1.2. Plik \texttt{.bin}}
+
+Plik binarny z rozszerzeniem \texttt{.bin} opsiujący graf. Przyjmowany format pliku jest identyczny jak binarny format wyjściowy opisany poniżej.
+
+\subsection{2.2. Format wyjściowy}
+Plik wyjściowy może być w wyżej pokaznym formacie\texttt{.csrrg}  lub w formie binarnej \texttt{.bin}
+\subsubsection{Zapis binarny}
+Struktura pliku binarnego:
+
+\begin{lstlisting}[numbers=NULL]
+[naglowek] 14B  
+ |- endianness_flag 2B
+ |- rozmiar_macierzy 2B  
+ |- offset_wskazniki_grup 2B
+ |- offset_indeksy_wezlow 4B  
+ |- offset_grupy_krawedzi 4B   
+[wskazniki wierszy] (varint + delta)  
+[wskazniki grup] (varint + delta)  
+[indeksy wezlow] (varint)
+[grupy krawedzi] (varint)
+\end{lstlisting}
+Struktura pliku binarnego jest podobna do pliku \texttt{.csrrg}. Linie pliku \texttt{.csrrg} odpowiadają:
+\begin{itemize}
+    \item Linia 1 - \texttt{rozmiar\_macierzy}
+    \item Linia 2 - \texttt{[indeksy wezlow]}
+    \item Linia 3 - \texttt{[wskazniki wierszy]}
+    \item Linia 4 - \texttt{[grupy krawedzi]}
+    \item Linia 5 - \texttt{[wskazniki grup]}
+\end{itemize}
+\textbf{Dlaczego ta kolejność sekcji?}
+
+Nagłówek musi być pierwszy – zawiera kluczowe informacje do parsowania reszty pliku.\\
+Offsety są zapisane przed danymi, aby parser mógł szybko obliczyć pozycje sekcji \texttt{[indeksy wezlow]} i \texttt{[grupy krawedzi]}.\\
+Dane (indeksy węzłów i grupy krawędzi) są na końcu, ponieważ ich odczyt wymaga wcześniejszego wczytania offsetów.
+
+Ta struktura gwarantuje minimalny rozmiar pliku i szybki dostęp do danych.
+
+
+\subsubsection{Nagłówek}
+
+\texttt{endianness\_flag} (2B)
+\begin{itemize}
+Pierwsze dwa bajty pliku stanowią znacznik kolejności bajtów (endianness\_flag), który określa, czy plik został zapisany w tym samym systemie, w którym jest odczytywany. Domyślna wartość to \textbf{AB}.\\
+	 - W systemie Little Endian (LE) liczby są zapisywane od najmniej  znaczącego bajtu (LSB) do najbardziej znaczącego (MSB).\\
+	 - W systemie Big Endian (BE) liczby są zapisywane odwrotnie – od MSB do LSB.
+     \\
+     \\
+Obsługa odczytu:\\
+	1.	Odczytaj pierwsze dwa bajty (endianness\_flag).\\
+	2.	Porównaj wartość:\\
+	•	AB → Brak konieczności konwersji.\\
+	•	BA → Wykonaj zamianę kolejności bajtów w polach wielobajtowych.\\
+	3.	Przetwarzaj dane zgodnie z wykrytą kolejnością bajtów.
+\end{itemize}
+
+
+\texttt{rozmiar\_macierzy} (2B)
+\begin{itemize}
+Maksymalny rozmiar macierzy to 1024. Typ \texttt{uint16} (2B) wystarcza, ponieważ zakres 0–65 535 obejmuje maksymalną wartość 1024.
+
+\end{itemize}
+
+\texttt{offset\_wskazniki\_grup} (2B)
+\begin{itemize}
+Wskaźnik na początek sekcji \texttt{[wskazniki grup]}
+\end{itemize}
+
+\texttt{offset\_indeksy\_wezlow} (4B)
+\begin{itemize}
+Wskaźnik na początek sekcji \texttt{[indeksy wezlow]}
+\textbf{Maksymalna wartość}:\\
+\texttt{rozmiar\_nagłówka + rozmiar\_wskaznikow\_wierszy + rozmiar\_wskaznikow\_grup}\\
+
+
+\end{itemize}
+
+    \texttt{offset\_grupy\_krawedzi} (4B)
+    \begin{itemize}
+        \textbf{Maksymalna wartość}:\\
+\texttt{offset\_indeksy\_wieszy + rozmiar\_indeksy\_wierszy}\\
+    \end{itemize}
+
+    W pliku nie ma informacji o tym kiedy zaczyna się sekcja \texttt{[wksazniki grup]}, ponieważ sekcja \texttt{[wskazniki wierszy]} ma zawsze \texttt{(rozmiar\_macierzy + 1)} liczb.
+    
+\subsubsection{Wskaźniki wierszy i grup}
+\textbf{Delta + varint}
+\begin{enumerate}
+    \item 
+    Delta - kodowanie różnicowe
+    
+    \emph{Cel:}
+    \\ Zmniejszenie rozmiaru danych poprzez zapisywanie różnic między kolejnymi wartościami (zamiast bezwzględnych wartości).
+
+    \emph{Przykład:}\\
+    Zamiast zapisu: \texttt{0;4;7;10;12;15;18;20}\\
+    Zapiszemy: \texttt{0;4;3;3;2;3;3;2}
+
+    \item 
+    Varint - (Variable-length Integer)
+
+    \emph{Cel:}\\
+    Zmniejszenie rozmiaru liczb poprzez użycie 1–5 bajtów (w zależności od wielkości liczby).
+
+    \emph{Zasady kodowania:}\\
+    Każdy bajt zawira \textbf{7 bitów danych} i \textbf{1 bit flagi} (MSB)\\
+    \texttt{MSB = 1} - Następuje kolejny bajt\\
+    \texttt{MSB = 0} - Ostatni bajt liczby
+\end{enumerate}
+
+\subsubsection{Indeksy węzłów i grupy krawędzi}
+Elementy indeksów węzłów i grup krawedzi są zapisywane jako \textbf{varint} (opisany powyżej).
+
+\section{3. Podział programu na moduły}
+\subsection{3.1. Dane wejściowe}
+\begin{lstlisting}
+file_reader.h csrrg_reader.c bin_reader.c
+\end{lstlisting}
+\subsection{3.2. Reprezentacja i przechowywanie grafu}
+\begin{lstlisting}
+graph.h graph.c
+\end{lstlisting}
+\subsection{3.3. Scalanie wierzchołków}
+\begin{lstlisting}
+coarsening.h coarsening.c
+\end{lstlisting}
+\subsection{3.4. Wstępny podział}
+\begin{lstlisting}
+partitioning.h partitioning.c
+\end{lstlisting}
+\subsection{3.5. Ulepszanie podziału}
+\begin{lstlisting}
+refinement.h refinement.c
+\end{lstlisting}
+\subsection{3.6. Dane wyjściowe}
+\begin{lstlisting}
+file_writer.h csrrg_writer.c bin_writer.c
+\end{lstlisting}
+\subsection{3.7*. Współpraca modułów}
+\begin{lstlisting}
+main.c
+\end{lstlisting}
+
+\section{4. Argumenty wywołania programu}\label{header-n256}
+
+Program akceptuje następujące argumenty wywołania:
+
+\begin{itemize}
+\item 
+    \texttt{-h / -\/-help} - wyświetla insturkcję obługi programu
+
+\item 
+    \texttt{-o / -\/-output} - umożliwia wybór nazwy pliku wyjściowego (np. -\/-output wynik), domyślnie wynik jest zapisywany do pliku domyślnego w wybranym formacie.
+\item 
+    \texttt{-b / -\/-binary} - określa format wyjściowy, zapisuje wynik do pliku binarnego. Domyślnie wynik jest zapisywany w formacie ASCII do pliku z rozszerzeniem \texttt{.csrrg}
+ 
+\item
+    \texttt{-p / -\/-parts} – liczba części podziału (np. -p 3, -\/-parts 3), domyślnie 2.
+\item
+    \texttt{-m / -\/-margin} – maksymalny margines procentowy (np. -m 15, -\/-margin 15), domyślnie 10\%. Margines jest liczony od średniej (gdy graf zostanie podzielony na 4 i 6 węzłów, to margines błędu wynosi 20\% = 4/5 = 6/5)
+\item
+    \texttt{-f / -\/-force} – pominięcie wbudowanego marginesu błędu, co pozwala na wykonanie podziału bez dodatkowych ograniczeń. W przypadku więcej niż jednego grafu w pliku program dzieli pierwszy graf (aby podzielić inny graf należy użyć \texttt{-g / -\/-graph}
+\item 
+    \texttt{-g / -\/-graph} - umożliwia wybór grafu do podzielenia w przypadku gdy w pliku jest więcej niż 1 graf
+\item
+    \texttt{-v / -\/-verbose} – szczegółowe logowanie przebiegu działania programu, w tym liczby iteracji i wyników pośrednich.
+\end{itemize}
+
+\section{5. Przykładowe wywołania programu}
+
+Przykładowe wywołania programu:
+
+\begin{itemize}
+\item
+\texttt{./program graf.csrrg -\/-parts 3 -\/-margin 20 -\/-output wynik}
+
+efektem będzie podzielenie grafu odczytanego z pliku \texttt{graf.csrrg} na \texttt{3} części tak, że liczba wierzchołków w powstałych częściach grafu nie będzie się różnić o więcej niż \texttt{20\%}. Wynik zostanie zapisany do pliku \texttt{wynik.csrrg}.
+\item
+\texttt{./program graf.csrrg -\/-parts 2 -\/-force -]/-verbose -\/-output wynik -b}
+
+efektem będzie podzielenie grafu na \texttt{2} części bez ograniczeń marginesu błędu, z aktywnym szczegółowym logowaniem i zapisaniem wyniku do pliku \texttt{wynik.bin} w formacie binarnym.
+\item
+\texttt{./program graf.bin -\/-graph 2 -\/-parts 4 -\/-binary}
+
+efektem będzie podzielenie drugiego grafu z pliku \texttt{graf.bin} na \texttt{4} części, zapisując wynik w formacie binarnym.
+\end{itemize}
+
+
+
+\section{6. Komunikaty błędów}
+
+Program nie przyjmuje argumentów w trakcie działania, więc mamy jedynie zadbać o poprawność danych wejściowych.
+
+\begin{itemize}
+\item
+\textbf{[Błąd 101]}: Niepoprawna definicja grafu: \texttt{Linia 29: Niepoprawna definicja krawędzi.}
+\item
+\textbf{[Błąd 102]}: Liczba podziałów poza zakresem: \texttt{Liczba podziałów musi być większa od 0 i mniejsza od liczby wierzchołków. Wczytano: "-1".}
+\item
+\textbf{[Błąd 103]}: Margines procentowy poza zakresem: \texttt{Margines procentowy musi być w zakresie 0-100. Wczytano: "123".}
+
+\item
+\textbf{[Błąd 104]}: Brak wymaganego argumentu wejściowego: \texttt{Nie podano pliku wejściowego zawierającego graf.}
+\item
+\textbf{[Błąd 105]}: Podany plik nie istnieje: \texttt{Nie można otworzyć pliku "graf.bin". Sprawdź ścieżkę dostępu.}
+\item
+\textbf{[Błąd 106]}: Wybór grafu poza zakresem: \texttt{W pliku znajduje się 5 grafów. Wczytano: "42". Popraw zakres numeracji.}
+\end{itemize}
+
+\end{document}
