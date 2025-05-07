@@ -2,7 +2,7 @@
 
 # Kompilator i flagi
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -g -lm
+CFLAGS = -Wall -std=c99 -g
 
 # Ścieżki plików
 SRC_DIR = src
@@ -10,10 +10,10 @@ BUILD_DIR = build
 EXECUTABLE = graph_reader
 
 # Pliki źródłowe
-SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/graph.c $(SRC_DIR)/csrrg_reader.c $(SRC_DIR)/csrrg_writer.c $(SRC_DIR)/bin_writer.c $(SRC_DIR)/utils.c $(SRC_DIR)/partition/partitioning.c
+SOURCES = $(SRC_DIR)/*.c
 
 # Pliki obiektowe
-OBJECTS = $(BUILD_DIR)/main.o $(BUILD_DIR)/graph.o $(BUILD_DIR)/csrrg_reader.o $(BUILD_DIR)/csrrg_writer.o $(BUILD_DIR)/bin_writer.o $(BUILD_DIR)/utils.o $(BUILD_DIR)/partitioning.o
+OBJECTS = $(BUILD_DIR)/main.o $(BUILD_DIR)/graph.o $(BUILD_DIR)/csrrg_reader.o $(BUILD_DIR)/csrrg_writer.o $(BUILD_DIR)/bin_writer.o $(BUILD_DIR)/utils.o $(BUILD_DIR)/partitioning.o $(BUILD_DIR)/coarsening.o $(BUILD_DIR)/refinement.o $(BUILD_DIR)/partition-utils.o
 
 # Główny cel - kompilacja programu
 all: $(BUILD_DIR) $(EXECUTABLE)
@@ -47,6 +47,15 @@ $(BUILD_DIR)/utils.o: $(SRC_DIR)/utils.c $(SRC_DIR)/utils.h
 
 $(BUILD_DIR)/partitioning.o: $(SRC_DIR)/partition/partitioning.c $(SRC_DIR)/partition/partitioning.h
 	$(CC) $(CFLAGS) -c $(SRC_DIR)/partition/partitioning.c -o $(BUILD_DIR)/partitioning.o
+
+$(BUILD_DIR)/coarsening.o: $(SRC_DIR)/partition/coarsening.c $(SRC_DIR)/partition/coarsening.h
+	$(CC) $(CFLAGS) -c $(SRC_DIR)/partition/coarsening.c -o $(BUILD_DIR)/coarsening.o
+
+$(BUILD_DIR)/refinement.o: $(SRC_DIR)/partition/refinement.c $(SRC_DIR)/partition/refinement.h
+	$(CC) $(CFLAGS) -c $(SRC_DIR)/partition/refinement.c -o $(BUILD_DIR)/refinement.o
+
+$(BUILD_DIR)/partition-utils.o: $(SRC_DIR)/partition/partition-utils.c $(SRC_DIR)/partition/partition-utils.h
+	$(CC) $(CFLAGS) -c $(SRC_DIR)/partition/partition-utils.c -o $(BUILD_DIR)/partition-utils.o
 
 # Uruchamianie programu (sztywne ścieżki)
 run: all

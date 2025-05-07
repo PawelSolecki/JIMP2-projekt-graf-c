@@ -2,17 +2,20 @@
 #include "file_reader.h"
 #include "utils.h"
 #include "partition/partitioning.h"
+#include "partition/coarsening.h"
+#include "partition/refinement.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 
-int main(int argc, char *argv[]) {
-    if (argc != 6) {
-        fprintf(stderr, "Użycie: %s <plik_wejściowy.csrrg> <plik_wyjściowy.csrrg>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
+#define SCALE_FACTOR 10
+#define DEFAULT_PARTS 2
+#define DEFAULT_MARGIN 10
+#define DEFAULT_OUTPUT_FORMAT "csrrg"
+#define DEFAULT_FILENAME "data/output.csrrg"
 
+int main(int argc, char *argv[]) {
     // Wczytaj graf z pliku wejściowego
     Graph *graph = load_graph_from_file(argv[1]);
     if (!graph) {
@@ -74,22 +77,32 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (parts == -1) parts = 2;
-    if (margin == -1) margin = 10;
-    if (output_format == NULL) output_format = "csrrg";
-    if (filename == NULL) filename = "data/output.csrrg";
+    if (parts == -1) parts = DEFAULT_PARTS;
+    if (margin == -1) margin = DEFAULT_MARGIN;
+    if (output_format == NULL) output_format = DEFAULT_OUTPUT_FORMAT;
+    if (filename == NULL) filename = DEFAULT_FILENAME;
 
-    // podziel graf na części
-    partitioning();
+    // Podziel graf na części
+    int **coarseToFineMap = NULL;
 
+    Graph *coarse = coarsenGraph(graph, (int) parts * SCALE_FACTOR, &coarseToFineMap);
+    int *partition = initialPartition(coarse, parts);
+    refinePartition(graph, partition, parts, margin, coarseToFineMap);
+
+    graph->partitions = partition;
+    graph = refreshGraphWithPartitions(graph);
+
+    printGraph(graph);
+
+    // Zapisz graf do pliku wyjściowego
     if ((strcmp(output_format, "csrrg") == 0 && save_graph_csrrg(graph, filename) != 0) ||
         (strcmp(output_format, "bin") == 0 && save_graph_bin(graph, filename) != 0)) {
-        fprintf(stderr, "Nie udało się zapisać grafu do pliku %s.\n", argv[2]);
+        fprintf(stderr, "Nie udało się zapisać grafu do pliku %s.\n", filename);
         freeGraph(graph);
         return EXIT_FAILURE;
     }  
 
-    printf("Graf został pomyślnie zapisany do pliku %s.\n", argv[5]);
+    printf("Graf został pomyślnie zapisany do pliku %s.\n", filename);
     freeGraph(graph);
     return EXIT_SUCCESS;
 }

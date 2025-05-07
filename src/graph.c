@@ -39,6 +39,9 @@ Graph* createGraph(int vertices) {
         graph->adjLists[i] = NULL;
     }
 
+    // Inicjalizuje tablicę do przechowywania przynależności wierzchołków do podziałów
+    graph->partitions = calloc(vertices, sizeof(int));
+
     return graph;
 }
 
@@ -149,6 +152,7 @@ void freeGraph(Graph* graph) {
         }
         free(graph->adjLists);
     }
+    free(graph->partitions);
     free(graph);
 }
 
@@ -216,4 +220,92 @@ int getVertexIndex(const Graph* graph, int row, int col) {
     
     fprintf(stderr, "Błąd (getVertexIndex): Nie znaleziono wierzchołka o pozycji (%d, %d).\n", row, col);
     return -1;
+}
+
+Graph* refreshGraphWithPartitions(Graph* graph) {
+    if (!graph || !graph->adjLists || !graph->partitions) {
+        fprintf(stderr, "Błąd (applyPartitionsToGraph): Graf jest NULL lub niepoprawny.\n");
+        return NULL;
+    }
+
+    // Iteracja przez wszystkie wierzchołki
+    for (int i = 0; i < graph->numVertices; i++) {
+        Node* prev = NULL;
+        Node* current = graph->adjLists[i];
+
+        while (current) {
+            // Sprawdź, czy sąsiad należy do innego podziału
+            if (graph->partitions[i] != graph->partitions[current->vertex]) {
+                // Usuń krawędź z listy sąsiedztwa wierzchołka 'i'
+                if (prev) {
+                    prev->next = current->next;
+                } else {
+                    graph->adjLists[i] = current->next;  // Jeśli to pierwszy element w liście
+                }
+                Node* temp = current;
+                current = current->next;
+                free(temp);  // Usuwamy wierzchołek 'current' z listy sąsiedztwa wierzchołka 'i'
+
+                // Teraz usuwamy krawędź z listy sąsiedztwa wierzchołka 'current->vertex'
+                Node* neighborPrev = NULL;
+                Node* neighborCurrent = graph->adjLists[current->vertex];
+                while (neighborCurrent) {
+                    if (neighborCurrent->vertex == i) {
+                        if (neighborPrev) {
+                            neighborPrev->next = neighborCurrent->next;
+                        } else {
+                            graph->adjLists[current->vertex] = neighborCurrent->next;
+                        }
+                        free(neighborCurrent);  // Usuwamy krawędź z listy sąsiedztwa wierzchołka 'current->vertex'
+                        break;
+                    }
+                    neighborPrev = neighborCurrent;
+                    neighborCurrent = neighborCurrent->next;
+                }
+            } else {
+                prev = current;
+                current = current->next;
+            }
+        }
+    }
+
+    return graph;
+}
+
+Graph* cloneGraph(Graph* graph) {
+    if (graph == NULL) {
+        fprintf(stderr, "Błąd (cloneGraph): Wskaźnik na graf jest NULL.\n");
+        return NULL;
+    }
+    
+    Graph* newGraph = createGraph(graph->numVertices);
+    if (!newGraph) {
+        fprintf(stderr, "Błąd (cloneGraph): Nie udało się utworzyć nowego grafu.\n");
+        return NULL;
+    }
+    newGraph->numCols = graph->numCols; // Skopiuj liczbę kolumn
+
+    for (int i = 0; i < newGraph->numVertices; i++) {
+        // Przejdź przez listę oryginalną i skopiuj
+        Node* current = graph->adjLists[i];
+        Node* prevCopy = NULL;
+
+        while (current) {
+            Node* copy = malloc(sizeof(Node));
+            copy->vertex = current->vertex;
+            copy->row = current->row;
+            copy->column = current->column;
+            copy->next = NULL;
+
+            if (prevCopy == NULL) {
+                newGraph->adjLists[i] = copy;
+            } else {
+                prevCopy->next = copy;
+            }
+            prevCopy = copy;
+            current = current->next;
+        }
+    }
+
+    return newGraph;
 }
