@@ -9,7 +9,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define SCALE_FACTOR 10
 #define DEFAULT_PARTS 2
 #define DEFAULT_MARGIN 10
 #define DEFAULT_OUTPUT_FORMAT "csrrg"
@@ -85,13 +84,14 @@ int main(int argc, char *argv[]) {
     // Podziel graf na części
     int **coarseToFineMap = NULL;
 
-    Graph *coarse = coarsenGraph(graph, (int) parts * SCALE_FACTOR, &coarseToFineMap);
+    Graph *coarse = coarsenGraph(graph, (int) (graph->numVertices / parts), &coarseToFineMap);
+    printf("--- Zredukowany graf\n");
     int *partition = initialPartition(coarse, parts);
+    printf("--- Podział początkowy\n");
     refinePartition(graph, partition, parts, margin, coarseToFineMap);
-
-    graph->partitions = partition;
-    graph = refreshGraphWithPartitions(graph);
-
+    printf("--- Po poprawie podziału\n");
+    graph = refreshGraphWithPartitions(graph, partition);
+    printf("--- Graf po rozdzieleniu\n");
     printGraph(graph);
 
     // Zapisz graf do pliku wyjściowego

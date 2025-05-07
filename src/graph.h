@@ -18,7 +18,6 @@ typedef struct Graph {
     int numVertices;
     int numCols;      // Dodane pole: liczba kolumn w siatce
     Node** adjLists;  // tablica wskaźników do list (jedna lista dla każdego wierzchołka)
-    int* partitions; // tablica do przechowywania przynależności wierzchołków do podziałów
 } Graph;
 
 // Tworzy nowy węzeł listy sąsiedztwa
@@ -44,7 +43,7 @@ int getVertexPosition(const Graph* graph, int vertexIndex, int* row, int* col);
 // Oblicza i zwraca indeks wierzchołka na podstawie pozycji (wiersz, kolumna).
 int getVertexIndex(const Graph* graph, int row, int col);
 
-Graph* refreshGraphWithPartitions(Graph* graph);
+Graph* refreshGraphWithPartitions(Graph* graph, int* partition);
 
 Graph* cloneGraph(Graph* graph);
 

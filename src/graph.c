@@ -39,9 +39,6 @@ Graph* createGraph(int vertices) {
         graph->adjLists[i] = NULL;
     }
 
-    // Inicjalizuje tablicę do przechowywania przynależności wierzchołków do podziałów
-    graph->partitions = calloc(vertices, sizeof(int));
-
     return graph;
 }
 
@@ -152,7 +149,6 @@ void freeGraph(Graph* graph) {
         }
         free(graph->adjLists);
     }
-    free(graph->partitions);
     free(graph);
 }
 
@@ -222,49 +218,46 @@ int getVertexIndex(const Graph* graph, int row, int col) {
     return -1;
 }
 
-Graph* refreshGraphWithPartitions(Graph* graph) {
-    if (!graph || !graph->adjLists || !graph->partitions) {
-        fprintf(stderr, "Błąd (applyPartitionsToGraph): Graf jest NULL lub niepoprawny.\n");
+Graph* refreshGraphWithPartitions(Graph* graph, int* partition) {
+    if (!graph || !partition) {
+        fprintf(stderr, "Błąd (refreshGraphWithPartitions): Niepoprawne dane wejściowe.\n");
         return NULL;
     }
 
-    // Iteracja przez wszystkie wierzchołki
-    for (int i = 0; i < graph->numVertices; i++) {
+    int n = graph->numVertices;
+
+    for (int v = 0; v < n; v++) {
         Node* prev = NULL;
-        Node* current = graph->adjLists[i];
+        Node* curr = graph->adjLists[v];
 
-        while (current) {
-            // Sprawdź, czy sąsiad należy do innego podziału
-            if (graph->partitions[i] != graph->partitions[current->vertex]) {
-                // Usuń krawędź z listy sąsiedztwa wierzchołka 'i'
-                if (prev) {
-                    prev->next = current->next;
-                } else {
-                    graph->adjLists[i] = current->next;  // Jeśli to pierwszy element w liście
-                }
-                Node* temp = current;
-                current = current->next;
-                free(temp);  // Usuwamy wierzchołek 'current' z listy sąsiedztwa wierzchołka 'i'
+        while (curr != NULL) {
+            int u = curr->vertex;
 
-                // Teraz usuwamy krawędź z listy sąsiedztwa wierzchołka 'current->vertex'
-                Node* neighborPrev = NULL;
-                Node* neighborCurrent = graph->adjLists[current->vertex];
-                while (neighborCurrent) {
-                    if (neighborCurrent->vertex == i) {
-                        if (neighborPrev) {
-                            neighborPrev->next = neighborCurrent->next;
-                        } else {
-                            graph->adjLists[current->vertex] = neighborCurrent->next;
-                        }
-                        free(neighborCurrent);  // Usuwamy krawędź z listy sąsiedztwa wierzchołka 'current->vertex'
+            // If v and u are in different partitions, remove the edge from both sides
+            if (partition[v] != partition[u]) {
+                // Remove edge u → v
+                Node* pu = NULL;
+                Node* cu = graph->adjLists[u];
+                while (cu != NULL) {
+                    if (cu->vertex == v) {
+                        if (pu) pu->next = cu->next;
+                        else graph->adjLists[u] = cu->next;
+                        free(cu);
                         break;
                     }
-                    neighborPrev = neighborCurrent;
-                    neighborCurrent = neighborCurrent->next;
+                    pu = cu;
+                    cu = cu->next;
                 }
+
+                // Remove edge v → u
+                Node* toDelete = curr;
+                curr = curr->next;
+                if (prev) prev->next = curr;
+                else graph->adjLists[v] = curr;
+                free(toDelete);
             } else {
-                prev = current;
-                current = current->next;
+                prev = curr;
+                curr = curr->next;
             }
         }
     }
