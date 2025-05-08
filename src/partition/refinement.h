@@ -9,6 +9,6 @@
     • Jeśli przeniesienie poprawia wynik, przenieś v do nowej części.
   Wynik: Przypisanie wierzchołków do k części.
 */
-void refinePartition(Graph *original, int *partition, int k, int margin, int **fineToCoarseMap);
+void refinePartition(Graph *original, int coarseVertices, int *partition, int k, int margin, int **fineToCoarseMap, int *fineCounts);
 
 #endif // REFINEMENT_H

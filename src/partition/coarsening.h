@@ -9,9 +9,9 @@
   2. Dopóki graf G_c jest zbyt duży:
     • Wybierz niesparowany wierzchołek v.
     • Znajdź sąsiada u maksymalizującego wagę krawędzi w(v, u).
-    • Połącz v i u w jeden superwierzchołek.
+    • Połącz v i u w jeden super-wierzchołek.
     • Zaktualizuj listę sąsiedztwa.
  */
-Graph* coarsenGraph(Graph* original, int targetSize, int*** coarseToFineMap);
+Graph* coarsenGraph(Graph* original, int targetSize, int*** coarseToFineMap, int** fineCounts);
 
 #endif // COARSENING_H

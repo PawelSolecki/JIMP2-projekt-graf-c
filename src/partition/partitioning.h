@@ -10,8 +10,6 @@
     • Wykorzystaj jedną z metod - losową, algorytm spektralny lub heurystykę optymalizacyjną.
     • Każdemu wierzchołkowi w G_c przypisz jedną z k części, minimalizując sumę wag przeciętych krawędzi
 */
-int *initialPartition(Graph *coarseGraph, int k);
-
-void partitioning();
+int *initialPartition(Graph *coarseGraph, int uncoarseNumVertices, int k);
 
 #endif // PARTITIONING_H

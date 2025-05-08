@@ -1,45 +1,42 @@
 #include "coarsening.h"
 #include "../graph.h"
-#include "partition-utils.h"    
-
-// coarseToFineMap[3] = {5, 8}; - jest po to żeby wiedzieć, które wierzchołki są połączone
+#include "partition-utils.h"
+#include <string.h>
 
 int* matchVertices(Graph* graph) {
     int n = graph->numVertices;
     int* matched = malloc(n * sizeof(int));
     char* visited = calloc(n, sizeof(char));
 
-    for (int v = 0; v < n; v++) {
-        matched[v] = v;  // domyślnie: nieprzypisany
-    }
+    for (int i = 0; i < n; i++)
+        matched[i] = i;
 
     for (int v = 0; v < n; v++) {
         if (visited[v]) continue;
 
-        Node* maxNeighbor = NULL;
+        int bestNeighbor = -1;
         int maxDegree = -1;
 
         for (Node* nbr = graph->adjLists[v]; nbr; nbr = nbr->next) {
             int u = nbr->vertex;
-            if (!visited[u]) {
-                int degree = 0;
-                for (Node* p = graph->adjLists[u]; p; p = p->next) degree++;
+            if (visited[u]) continue;
 
-                if (degree > maxDegree) {
-                    maxDegree = degree;
-                    maxNeighbor = nbr;
-                }
+            // Degree of u
+            int degree = 0;
+            for (Node* p = graph->adjLists[u]; p; p = p->next)
+                degree++;
+
+            if (degree > maxDegree) {
+                maxDegree = degree;
+                bestNeighbor = u;
             }
         }
 
-        if (maxNeighbor) {
-            int u = maxNeighbor->vertex;
-            matched[v] = u;
-            matched[u] = v;
-            visited[v] = 1;
-            visited[u] = 1;
+        if (bestNeighbor != -1) {
+            matched[v] = bestNeighbor;
+            matched[bestNeighbor] = v;
+            visited[v] = visited[bestNeighbor] = 1;
         } else {
-            // brak sąsiadów, nieparowany
             visited[v] = 1;
         }
     }
@@ -48,100 +45,206 @@ int* matchVertices(Graph* graph) {
     return matched;
 }
 
-Graph* contractGraph(Graph* graph, int* match, DynamicIntList** coarseToFineMap) {
+
+Graph* contractGraph(
+    Graph* graph,
+    int* match,
+    DynamicIntList** prevMap,
+    DynamicIntList*** newMapOut,
+    int* newSizeOut
+) {
     int n = graph->numVertices;
     int* superIndex = malloc(n * sizeof(int));
-    int superCount = 0;
-
+    if (superIndex == NULL) {
+        fprintf(stderr, "Failed to allocate memory for superIndex\n");
+        exit(EXIT_FAILURE);
+    }
     for (int i = 0; i < n; i++) superIndex[i] = -1;
 
-    // Przypisz nowe indeksy superwierzchołków
+    int superCount = 0;
+
+    // Assign super-node indices
     for (int i = 0; i < n; i++) {
         if (i <= match[i]) {
             if (superIndex[i] == -1) {
                 superIndex[i] = superCount;
-                if (match[i] != i) {
+                if (match[i] != i)
                     superIndex[match[i]] = superCount;
-                }
                 superCount++;
             }
         }
     }
 
-    Graph* newGraph = createGraph(superCount);
-
-    // Zaktualizuj coarseToFineMap
+    // Assign unmatched vertices their own super-node
     for (int i = 0; i < n; i++) {
-        int coarseID = superIndex[i];
-        addToDynamicList(coarseToFineMap[coarseID], i);
+        if (superIndex[i] == -1) {
+            superIndex[i] = superCount++;
+        }
     }
 
+    printf("--- Super-node count: %d --- \n", superCount);
+
+    // Initialize new coarseToFine map
+    DynamicIntList** newMap = malloc(superCount * sizeof(DynamicIntList*));
+    if (newMap == NULL) {
+        fprintf(stderr, "Failed to allocate memory for newMap\n");
+        free(superIndex);
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i < superCount; i++) {
+        newMap[i] = createDynamicList();
+    }
+
+    // Populate new map
+    for (int i = 0; i < n; i++) {
+        int coarseID = superIndex[i];
+        if (coarseID == -1) continue;  // safety check
+
+        if (prevMap == NULL) {
+            addToDynamicList(newMap[coarseID], i);
+        } else {
+            DynamicIntList* fineList = prevMap[i];
+            for (int j = 0; j < fineList->size; j++) {
+                addToDynamicList(newMap[coarseID], fineList->data[j]);
+            }
+        }
+    }
+
+    // Create new graph with same number of columns
+    Graph* newGraph = createGraph(superCount);
+    newGraph->numCols = graph->numCols;
+
+    // Edge building with seen table to avoid duplicates
     char* seen = calloc(superCount, sizeof(char));
+    if (seen == NULL) {
+        fprintf(stderr, "Failed to allocate memory for seen\n");
+        free(superIndex);
+        for (int i = 0; i < superCount; i++) {
+            freeDynamicList(newMap[i]);
+        }
+        free(newMap);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("--- New graph size: %d ---\n", superCount);
 
     for (int v = 0; v < n; v++) {
         int sv = superIndex[v];
+        if (sv < 0 || sv >= superCount || newMap[sv] == NULL || newMap[sv]->size == 0) continue;
 
+        printf("--- Processing vertex %d (super-node %d) ---\n", v, sv);
+    
         for (Node* nbr = graph->adjLists[v]; nbr != NULL; nbr = nbr->next) {
             int u = nbr->vertex;
+        
+            // Validate u
+            if (u < 0 || u >= n) continue;
+        
             int su = superIndex[u];
-
-            if (sv == su) continue;
-
-            if (!seen[su]) {
-                addEdge(newGraph, sv, graph->adjLists[v]->row, graph->adjLists[v]->column,
-                        su, graph->adjLists[u]->row, graph->adjLists[u]->column);
-                seen[su] = 1;
-            }
+        
+            // Skip if same super node, already seen, or out of bounds
+            if (su < 0 || su >= superCount || sv == su || seen[su]) continue;
+        
+            // Validate both super-nodes exist and have members
+            if (!newMap[su] || newMap[su]->size == 0) continue;
+            if (!newMap[sv] || newMap[sv]->size == 0) continue;
+        
+            int fineSrc = newMap[sv]->data[0];
+            int fineDest = newMap[su]->data[0];
+        
+            // Double-check fine vertex IDs are within range
+            if (fineSrc < 0 || fineSrc >= graph->numVertices) continue;
+            if (fineDest < 0 || fineDest >= graph->numVertices) continue;
+        
+            Node* srcList = graph->adjLists[fineSrc];
+            Node* destList = graph->adjLists[fineDest];
+        
+            // Be safe: check adjList pointers before accessing fields
+            int src_row = srcList ? srcList->row : 0;
+            int src_col = srcList ? srcList->column : 0;
+            int dest_row = destList ? destList->row : 0;
+            int dest_col = destList ? destList->column : 0;
+        
+            addEdge(newGraph, sv, src_row, src_col, su, dest_row, dest_col);
+            seen[su] = 1;
         }
+        
 
-        for (Node* nbr = graph->adjLists[v]; nbr != NULL; nbr = nbr->next)
-            seen[superIndex[nbr->vertex]] = 0;
+        printf("--- Added edges for super-node %d ---\n", sv);
+    
+        // Reset seen[] safely
+        for (Node* nbr = graph->adjLists[v]; nbr != NULL; nbr = nbr->next) {
+            int su_reset = superIndex[nbr->vertex];
+            if (su_reset >= 0 && su_reset < superCount)
+                seen[su_reset] = 0;
+        }
     }
+    
+    printf("--- New graph ---\n");
 
     free(seen);
     free(superIndex);
+
+    *newMapOut = newMap;
+    *newSizeOut = superCount;
+
     return newGraph;
 }
 
-Graph* coarsenGraph(Graph* original, int targetSize, int*** coarseToFineMap) {
+
+Graph* coarsenGraph(Graph* original, int targetSize, int*** coarseToFineMap, int** fineCounts) {
     Graph* current = cloneGraph(original);
     int currentSize = current->numVertices;
 
-    // Temporary dynamic map
-    DynamicIntList** dynamicMap = malloc(currentSize * sizeof(DynamicIntList*));
-    for (int i = 0; i < currentSize; i++) {
-        dynamicMap[i] = createDynamicList();
-    }
-
+    DynamicIntList** currentMap = NULL;
+    
     while (current->numVertices > targetSize) {
         int* matched = matchVertices(current);
-        Graph* next = contractGraph(current, matched, dynamicMap);
+
+        DynamicIntList** newMap = NULL;
+        int newSize = 0;
+
+        printf("--- Coarsening step ---\n");
+
+        Graph* next = contractGraph(current, matched, currentMap, &newMap, &newSize);
+
+        printf("Coarsened graph size: %d\n", newSize);
 
         freeGraph(current);
         free(matched);
-        current = next;
-        currentSize = current->numVertices;
-    }
 
-    // Allocate output 2D array for coarseToFineMap
-    int** map = malloc(current->numVertices * sizeof(int*));
-    for (int i = 0; i < current->numVertices; i++) {
-        int size = dynamicMap[i]->size;
-        map[i] = malloc((size + 1) * sizeof(int)); // First value is the size
-        map[i][0] = size;
-        for (int j = 0; j < size; j++) {
-            map[i][j + 1] = dynamicMap[i]->data[j];
+        if (currentMap) {
+            for (int i = 0; i < currentSize; i++) {
+                freeDynamicList(currentMap[i]);
+            }
+            free(currentMap);
         }
+
+        current = next;
+        currentMap = newMap;
+        currentSize = newSize;
     }
 
-    // Clean up dynamic map
+    // Convert currentMap to final coarseToFineMap and fineCounts
+    int** map = malloc(currentSize * sizeof(int*));
+    int* counts = malloc(currentSize * sizeof(int));
+    memset(counts, -1, currentSize * sizeof(int));
+
     for (int i = 0; i < currentSize; i++) {
-        freeDynamicList(dynamicMap[i]);
+        int size = currentMap[i]->size;
+        counts[i] = size;
+        map[i] = malloc(size * sizeof(int));
+        memset(map[i], -1, size * sizeof(int));
+        for (int j = 0; j < size; j++) {
+            map[i][j] = currentMap[i]->data[j];
+        }
+        freeDynamicList(currentMap[i]);
     }
-    free(dynamicMap);
+
+    free(currentMap);
 
     *coarseToFineMap = map;
+    *fineCounts = counts;
+
     return current;
 }
-
-
