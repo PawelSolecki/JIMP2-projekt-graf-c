@@ -274,6 +274,23 @@ Graph* load_graph_from_file(const char* filename) {
     }
     groupptr_array = parse_semicolon_ints(line, &num_groupptrs);
 
+    // POPRAWKA: Sprawdź czy ostatni wskaźnik wskazuje na długość tablicy groups_array
+    if (num_groupptrs > 0 && groupptr_array[num_groupptrs - 1] != num_groups_elements) {
+        // Alokuj nową tablicę o jeden element większą
+        int *new_groupptr = realloc(groupptr_array, (num_groupptrs + 1) * sizeof(int));
+        if (!new_groupptr) {
+            fprintf(stderr, "Błąd: Nie można zaalokować pamięci dla rozszerzonej tablicy wskaźników grup.\n");
+            cleanup_csrrg_on_error(file, graph, indices_array, rowptr_array, groups_array, groupptr_array);
+            free(positions);
+            return NULL;
+        }
+        
+        // Dodaj brakujący wskaźnik na koniec
+        groupptr_array = new_groupptr;
+        groupptr_array[num_groupptrs] = num_groups_elements;
+        num_groupptrs++; // Zwiększ liczbę wskaźników
+    }
+
     // --- Budowanie krawędzi grafu z uwzględnieniem pozycji ---
     if (num_groupptrs > 0) {
         int num_groups = num_groupptrs - 1;
