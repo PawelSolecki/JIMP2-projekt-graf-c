@@ -217,3 +217,88 @@ int getVertexIndex(const Graph* graph, int row, int col) {
     fprintf(stderr, "Błąd (getVertexIndex): Nie znaleziono wierzchołka o pozycji (%d, %d).\n", row, col);
     return -1;
 }
+
+Graph* refreshGraphWithPartitions(Graph* graph, int* partition) {
+    if (!graph || !partition) {
+        fprintf(stderr, "Błąd (refreshGraphWithPartitions): Niepoprawne dane wejściowe.\n");
+        return NULL;
+    }
+
+    int n = graph->numVertices;
+
+    for (int v = 0; v < n; v++) {
+        Node* prev = NULL;
+        Node* curr = graph->adjLists[v];
+
+        while (curr != NULL) {
+            int u = curr->vertex;
+
+            // Jeśli v i u są w różnych partycjach, usuń krawędź z obu stron
+            if (partition[v] != partition[u]) {
+                // Usuń krawędź u → v
+                Node* pu = NULL;
+                Node* cu = graph->adjLists[u];
+                while (cu != NULL) {
+                    if (cu->vertex == v) {
+                        if (pu) pu->next = cu->next;
+                        else graph->adjLists[u] = cu->next;
+                        free(cu);
+                        break;
+                    }
+                    pu = cu;
+                    cu = cu->next;
+                }
+
+                // Usuń krawędź v → u
+                Node* toDelete = curr;
+                curr = curr->next;
+                if (prev) prev->next = curr;
+                else graph->adjLists[v] = curr;
+                free(toDelete);
+            } else {
+                prev = curr;
+                curr = curr->next;
+            }
+        }
+    }
+
+    return graph;
+}
+
+Graph* cloneGraph(Graph* graph) {
+    if (graph == NULL) {
+        fprintf(stderr, "Błąd (cloneGraph): Wskaźnik na graf jest NULL.\n");
+        return NULL;
+    }
+    
+    Graph* newGraph = createGraph(graph->numVertices);
+    if (!newGraph) {
+        fprintf(stderr, "Błąd (cloneGraph): Nie udało się utworzyć nowego grafu.\n");
+        return NULL;
+    }
+    newGraph->numCols = graph->numCols; // Skopiuj liczbę kolumn
+
+    for (int i = 0; i < newGraph->numVertices; i++) {
+        // Przejdź przez listę oryginalną i skopiuj
+        Node* current = graph->adjLists[i];
+        Node* prevCopy = NULL;
+
+        while (current) {
+            Node* copy = malloc(sizeof(Node));
+            copy->vertex = current->vertex;
+            copy->row = current->row;
+            copy->column = current->column;
+            copy->next = NULL;
+
+            if (prevCopy == NULL) {
+                newGraph->adjLists[i] = copy;
+            } else {
+                prevCopy->next = copy;
+            }
+            prevCopy = copy;
+            current = current->next;
+        }
+    }
+
+    return newGraph;
+}
