@@ -43,8 +43,10 @@ int getVertexPosition(const Graph* graph, int vertexIndex, int* row, int* col);
 // Oblicza i zwraca indeks wierzchołka na podstawie pozycji (wiersz, kolumna).
 int getVertexIndex(const Graph* graph, int row, int col);
 
+// Oblicza i zwraca odległość euklidesową między dwoma wierzchołkami
 Graph* refreshGraphWithPartitions(Graph* graph, int* partition);
 
+// Oblicza i zwraca odległość euklidesową między dwoma wierzchołkami
 Graph* cloneGraph(Graph* graph);
 
 #endif // GRAPH_H

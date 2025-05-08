@@ -68,9 +68,9 @@ run: all
 		export OUTPUT=csrrg; \
 	fi; \
 	if [ "$(OUTPUT)" = "csrrg" ]; then \
-		./$(EXECUTABLE) data/graf1.csrrg --output csrrg --filename $(FILENAME).csrrg; \
+		./$(EXECUTABLE) data/graf1.csrrg --output csrrg --filename $(FILENAME).csrrg --margin 20; \
 	elif [ "$(OUTPUT)" = "bin" ]; then \
-		./$(EXECUTABLE) data/graf1.csrrg --output bin --filename $(FILENAME).bin; \
+		./$(EXECUTABLE) data/graf1.csrrg --output bin --filename $(FILENAME).bin --margin 20; \
 	else \
 		echo "Error: Wskaż parametry OUTPUT=bin or OUTPUT=csrrg oraz FILENAME=<ścieżka>"; \
 	fi

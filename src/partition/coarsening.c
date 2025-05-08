@@ -21,7 +21,7 @@ int* matchVertices(Graph* graph) {
             int u = nbr->vertex;
             if (visited[u]) continue;
 
-            // Degree of u
+            // Stopień wierzchołka u
             int degree = 0;
             for (Node* p = graph->adjLists[u]; p; p = p->next)
                 degree++;
@@ -56,14 +56,14 @@ Graph* contractGraph(
     int n = graph->numVertices;
     int* superIndex = malloc(n * sizeof(int));
     if (superIndex == NULL) {
-        fprintf(stderr, "Failed to allocate memory for superIndex\n");
+        fprintf(stderr, "Nie udało się przydzielić pamięci dla superIndex\n");
         exit(EXIT_FAILURE);
     }
     for (int i = 0; i < n; i++) superIndex[i] = -1;
 
     int superCount = 0;
 
-    // Assign super-node indices
+    // Przypisanie indeksów super-wierzchołków
     for (int i = 0; i < n; i++) {
         if (i <= match[i]) {
             if (superIndex[i] == -1) {
@@ -75,19 +75,19 @@ Graph* contractGraph(
         }
     }
 
-    // Assign unmatched vertices their own super-node
+    // Przypisanie niepołączonych wierzchołków do ich własnych super-wierzchołków
     for (int i = 0; i < n; i++) {
         if (superIndex[i] == -1) {
             superIndex[i] = superCount++;
         }
     }
 
-    printf("--- Super-node count: %d --- \n", superCount);
+    printf("--- Liczba super-wierzchołków: %d --- \n", superCount);
 
-    // Initialize new coarseToFine map
+    // Inicjalizacja nowej mapy coarseToFine
     DynamicIntList** newMap = malloc(superCount * sizeof(DynamicIntList*));
     if (newMap == NULL) {
-        fprintf(stderr, "Failed to allocate memory for newMap\n");
+        fprintf(stderr, "Nie udało się przydzielić pamięci dla newMap\n");
         free(superIndex);
         exit(EXIT_FAILURE);
     }
@@ -95,10 +95,10 @@ Graph* contractGraph(
         newMap[i] = createDynamicList();
     }
 
-    // Populate new map
+    // Wypełnianie nowej mapy
     for (int i = 0; i < n; i++) {
         int coarseID = superIndex[i];
-        if (coarseID == -1) continue;  // safety check
+        if (coarseID == -1) continue;  // sprawdzenie bezpieczeństwa
 
         if (prevMap == NULL) {
             addToDynamicList(newMap[coarseID], i);
@@ -110,14 +110,14 @@ Graph* contractGraph(
         }
     }
 
-    // Create new graph with same number of columns
+    // Tworzenie nowego grafu z tą samą liczbą kolumn
     Graph* newGraph = createGraph(superCount);
     newGraph->numCols = graph->numCols;
 
-    // Edge building with seen table to avoid duplicates
+    // Tworzenie krawędzi z użyciem tablicy seen, aby uniknąć duplikatów
     char* seen = calloc(superCount, sizeof(char));
     if (seen == NULL) {
-        fprintf(stderr, "Failed to allocate memory for seen\n");
+        fprintf(stderr, "Nie udało się przydzielić pamięci dla seen\n");
         free(superIndex);
         for (int i = 0; i < superCount; i++) {
             freeDynamicList(newMap[i]);
@@ -126,40 +126,40 @@ Graph* contractGraph(
         exit(EXIT_FAILURE);
     }
 
-    printf("--- New graph size: %d ---\n", superCount);
+    printf("--- Rozmiar nowego grafu: %d ---\n", superCount);
 
     for (int v = 0; v < n; v++) {
         int sv = superIndex[v];
         if (sv < 0 || sv >= superCount || newMap[sv] == NULL || newMap[sv]->size == 0) continue;
 
-        printf("--- Processing vertex %d (super-node %d) ---\n", v, sv);
+        printf("--- Przetwarzanie wierzchołka %d (super-wierzchołek %d) ---\n", v, sv);
     
         for (Node* nbr = graph->adjLists[v]; nbr != NULL; nbr = nbr->next) {
             int u = nbr->vertex;
         
-            // Validate u
+            // Walidacja u
             if (u < 0 || u >= n) continue;
         
             int su = superIndex[u];
         
-            // Skip if same super node, already seen, or out of bounds
+            // Pomijanie, jeśli ten sam super-wierzchołek, już widziany lub poza zakresem
             if (su < 0 || su >= superCount || sv == su || seen[su]) continue;
         
-            // Validate both super-nodes exist and have members
+            // Walidacja, czy oba super-wierzchołki istnieją i mają członków
             if (!newMap[su] || newMap[su]->size == 0) continue;
             if (!newMap[sv] || newMap[sv]->size == 0) continue;
         
             int fineSrc = newMap[sv]->data[0];
             int fineDest = newMap[su]->data[0];
         
-            // Double-check fine vertex IDs are within range
+            // Podwójne sprawdzenie, czy ID wierzchołków są w zakresie
             if (fineSrc < 0 || fineSrc >= graph->numVertices) continue;
             if (fineDest < 0 || fineDest >= graph->numVertices) continue;
         
             Node* srcList = graph->adjLists[fineSrc];
             Node* destList = graph->adjLists[fineDest];
         
-            // Be safe: check adjList pointers before accessing fields
+            // Bezpieczeństwo: sprawdzenie wskaźników adjList przed dostępem do pól
             int src_row = srcList ? srcList->row : 0;
             int src_col = srcList ? srcList->column : 0;
             int dest_row = destList ? destList->row : 0;
@@ -170,9 +170,9 @@ Graph* contractGraph(
         }
         
 
-        printf("--- Added edges for super-node %d ---\n", sv);
+        printf("--- Dodano krawędzie dla super-wierzchołka %d ---\n", sv);
     
-        // Reset seen[] safely
+        // Resetowanie tablicy seen[] w sposób bezpieczny
         for (Node* nbr = graph->adjLists[v]; nbr != NULL; nbr = nbr->next) {
             int su_reset = superIndex[nbr->vertex];
             if (su_reset >= 0 && su_reset < superCount)
@@ -180,7 +180,7 @@ Graph* contractGraph(
         }
     }
     
-    printf("--- New graph ---\n");
+    printf("--- Nowy graf ---\n");
 
     free(seen);
     free(superIndex);
@@ -204,11 +204,11 @@ Graph* coarsenGraph(Graph* original, int targetSize, int*** coarseToFineMap, int
         DynamicIntList** newMap = NULL;
         int newSize = 0;
 
-        printf("--- Coarsening step ---\n");
+        printf("--- Krok koarseningu ---\n");
 
         Graph* next = contractGraph(current, matched, currentMap, &newMap, &newSize);
 
-        printf("Coarsened graph size: %d\n", newSize);
+        printf("Rozmiar grafu po koarseningu: %d\n", newSize);
 
         freeGraph(current);
         free(matched);
@@ -225,10 +225,10 @@ Graph* coarsenGraph(Graph* original, int targetSize, int*** coarseToFineMap, int
         currentSize = newSize;
     }
 
-    // Convert currentMap to final coarseToFineMap and fineCounts
-    int** map = malloc(currentSize * sizeof(int*));
-    int* counts = malloc(currentSize * sizeof(int));
-    memset(counts, -1, currentSize * sizeof(int));
+    // Konwersja currentMap na końcową coarseToFineMap i fineCounts
+    int** map = malloc(original->numVertices * sizeof(int*));
+    int* counts = malloc(original->numVertices * sizeof(int));
+    memset(counts, -1, original->numVertices * sizeof(int));
 
     for (int i = 0; i < currentSize; i++) {
         int size = currentMap[i]->size;

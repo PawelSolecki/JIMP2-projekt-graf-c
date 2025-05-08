@@ -233,9 +233,9 @@ Graph* refreshGraphWithPartitions(Graph* graph, int* partition) {
         while (curr != NULL) {
             int u = curr->vertex;
 
-            // If v and u are in different partitions, remove the edge from both sides
+            // Jeśli v i u są w różnych partycjach, usuń krawędź z obu stron
             if (partition[v] != partition[u]) {
-                // Remove edge u → v
+                // Usuń krawędź u → v
                 Node* pu = NULL;
                 Node* cu = graph->adjLists[u];
                 while (cu != NULL) {
@@ -249,7 +249,7 @@ Graph* refreshGraphWithPartitions(Graph* graph, int* partition) {
                     cu = cu->next;
                 }
 
-                // Remove edge v → u
+                // Usuń krawędź v → u
                 Node* toDelete = curr;
                 curr = curr->next;
                 if (prev) prev->next = curr;

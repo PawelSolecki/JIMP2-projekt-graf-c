@@ -85,20 +85,16 @@ int main(int argc, char *argv[]) {
     int **coarseToFineMap = NULL;
     int* fineCounts = NULL;
 
-    printf("### Zmniejszanie grafu\n");
+    printf("\n### Zmniejszanie grafu\n");
     Graph *coarse = coarsenGraph(graph, (int) (graph->numVertices / parts), &coarseToFineMap, &fineCounts);
-
-    printf("### Zredukowany graf\n");
+    
+    printf("\n### Zredukowany graf\n");
     int *partition = initialPartition(coarse, graph->numVertices, parts);
 
-    printf("### Podział początkowy\n");
+    printf("\n### Podział początkowy\n");
     refinePartition(graph, coarse->numVertices, partition, parts, margin, coarseToFineMap, fineCounts);
-
-    for (int i = 0; i < graph->numVertices; i++) {
-        printf("partition[%d]: %d\n", i, partition[i]);
-    }
     
-    printf("### Podział po poprawie\n");
+    printf("\n### Podział po poprawie\n");
     graph = refreshGraphWithPartitions(graph, partition);
     printGraph(graph);
 
