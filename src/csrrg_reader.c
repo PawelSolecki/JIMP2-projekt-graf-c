@@ -176,7 +176,6 @@ Graph* load_graph_from_file(const char* filename) {
          return NULL;
     }
     cols = (int)val;
-    rows = cols; // Zakładamy macierz kwadratową
 
     // --- Linia 2: Indeksy węzłów w poszczególnych wierszach ---
     line_num++;
@@ -220,10 +219,20 @@ Graph* load_graph_from_file(const char* filename) {
              return NULL;
          }
     }
-    if (num_rowptrs != rows + 1) {
-        fprintf(stderr, "Błąd: Linia %d (Wskaźniki wierszy) powinna zawierać %d elementów (rows+1), a zawiera %d w pliku %s.\n", line_num, rows + 1, num_rowptrs, filename);
-        cleanup_csrrg_on_error(file, NULL, indices_array, rowptr_array, NULL, NULL);
-        return NULL;
+
+    // Określ faktyczną liczbę wierszy na podstawie rowptr_array
+    rows = num_rowptrs - 1;
+
+    // Dodaj walidację tablicy rowptr_array przed obliczaniem vertex_count
+    for (int i = 0; i < num_rowptrs - 1; i++) {
+        if (rowptr_array[i] > rowptr_array[i+1]) {
+            fprintf(stderr, "Ostrzeżenie: rowptr_array nie jest monotonicznie rosnąca: rowptr_array[%d]=%d > rowptr_array[%d]=%d\n", 
+                    i, rowptr_array[i], i+1, rowptr_array[i+1]);
+        }
+        if (rowptr_array[i] < 0 || rowptr_array[i] >= num_indices) {
+            fprintf(stderr, "Ostrzeżenie: rowptr_array[%d]=%d poza zakresem [0,%d)\n", 
+                    i, rowptr_array[i], num_indices);
+        }
     }
 
     // --- Zlicz faktyczną liczbę wierzchołków i utwórz mapowania ---
@@ -231,11 +240,32 @@ Graph* load_graph_from_file(const char* filename) {
     for (int row = 0; row < rows; row++) {
         int start_idx = rowptr_array[row];
         int end_idx = rowptr_array[row+1];
+        
+        // Walidacja indeksów
+        if (start_idx < 0 || end_idx > num_indices || end_idx < start_idx) {
+            fprintf(stderr, "Ostrzeżenie: Nieprawidłowe indeksy dla wiersza %d: start_idx=%d, end_idx=%d\n", 
+                    row, start_idx, end_idx);
+            continue; // Pomiń ten wiersz
+        }
+        
         actual_vertex_count += (end_idx - start_idx); // Dodaj liczbę wierzchołków w tym wierszu
     }
     
-    // Utwórz mapowania pozycji wierzchołków
-    int* positions = malloc(num_indices * 2 * sizeof(int)); // [row1, col1, row2, col2, ...]
+    // Dodaj zabezpieczenie przed zbyt dużą liczbą wierzchołków
+    const int MAX_REASONABLE_VERTICES = 1000000; // Ustaw rozsądną granicę
+    if (actual_vertex_count <= 0 || actual_vertex_count > MAX_REASONABLE_VERTICES) {
+        fprintf(stderr, "Błąd: Obliczona liczba wierzchołków (%d) jest nieprawidłowa lub zbyt duża.\n", actual_vertex_count);
+        cleanup_csrrg_on_error(file, NULL, indices_array, rowptr_array, NULL, NULL);
+        return NULL;
+    }
+    
+    // Utwórz mapowania pozycji wierzchołków - używaj actual_vertex_count zamiast num_indices
+    int* positions = malloc(actual_vertex_count * 2 * sizeof(int)); // [row1, col1, row2, col2, ...]
+    if (!positions) {
+        fprintf(stderr, "Błąd: Nie można zaalokować pamięci dla tablicy pozycji.\n");
+        cleanup_csrrg_on_error(file, NULL, indices_array, rowptr_array, NULL, NULL);
+        return NULL;
+    }
     int vertex_index = 0;
     
     for (int row = 0; row < rows; row++) {
